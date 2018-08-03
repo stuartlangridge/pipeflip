@@ -521,14 +521,14 @@ function draw_remaining(sx, sy, step, direction, ctx) {
     //console.log("draw_remaining", direction, "sx", sx, "sy", sy, "step", step, "top", top, "left", left, "w", w, "h", h);
 }
 
-function fillCanvas(ctx, table, delay) {
+function fillCanvas(ctx, table) {
 
     function endTheGame(x, y, square) {
         console.log("end the game here!");
         document.body.removeAttribute("data-wait-for-press");
         square.style.backgroundColor = "red";
         endgame = true;
-        clearInterval(iv);
+        stopIterating = true;
         if (y < 4) {
             document.querySelector("main").className = "gameover_top";
         } else {
@@ -550,7 +550,7 @@ function fillCanvas(ctx, table, delay) {
         console.log("we win!");
         document.getElementById("victory").play();
         endgame = true;
-        clearInterval(iv);
+        stopIterating = true; // don't really need this because we bail early
         table.querySelectorAll("tr")[7].dataset.won = "won";
         setTimeout(function() {
             document.querySelector("main").className = "win";
@@ -566,11 +566,14 @@ function fillCanvas(ctx, table, delay) {
     Array.prototype.slice.call(table.querySelectorAll("tr")).forEach(function(tr) {
         grid.push(Array.prototype.slice.call(tr.querySelectorAll("td")));
     })
-    var iv = setInterval(function() {
+    
+    var stopIterating = false;
+    function fillIteration() {
+        if (stopIterating) return; // so we won't ever call ourselves again
         var toprocess = q.shift();
         if (!toprocess) {
             console.log("no more queue");
-            clearInterval(iv);
+            stopIterating = true; // don't really need this because we bail early and don't call setTimeout
             return;
         }
         var adds = [];
@@ -629,7 +632,9 @@ function fillCanvas(ctx, table, delay) {
         toprocess.step += 1;
         if (toprocess.step < 8) q.unshift(toprocess);
         //console.log("Queue", q.map(ss => { return ss.squares.map(s => grid[s.y][s.x]) }))
-    }, delay);
+        setTimeout(fillIteration, early_finish ? 5 : 250)
+    }
+    fillIteration();
 }
 
 function pulse(current, total) {
@@ -665,7 +670,7 @@ function newgame() {
             clearInterval(start_iv);
             console.log("begin flow!");
             table.dataset.flowing = "flowing";
-            fillCanvas(ctx, table, early_finish ? 5 : 250);
+            fillCanvas(ctx, table);
         } else {
             pulse(waited_time, wait_time);
         }
