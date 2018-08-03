@@ -1,0 +1,731 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipe Flip</title>
+</head>
+<body>
+
+<main class="title">
+    <img class="title" src="title.png">
+    <img class="title" id="soundoff" src="soundoff.png">
+    <a href="#" id="soundtoggle"></a>
+    <img class="loading" src="loading.gif">
+    <div class="gameover"><span class="top"></span><span class="bottom"></span></div>
+    <div class="curtains">
+        <span class="left"></span><span class="right"></span>
+        <span id="level">2</span>
+    </div>
+    <div id="press"></div>
+</main>
+
+<audio src="thump1.wav" id="thump1"></audio>
+<audio src="thump2.wav" id="thump2"></audio>
+<audio src="victory.mp3" id="victory"></audio>
+<audio src="the_field_of_dreams.mp3" id="music" loop></audio>
+
+<style>
+@font-face {
+  font-family: 'unscii';
+  src:  url('unscii-8-fantasy.woff') format('woff');
+}
+
+html, body {
+    overflow: hidden;
+}
+* { margin: 0; padding: 0; }
+
+main {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 64px;
+    height: 64px;
+    transform: translate(-50%, -50%);
+    transform-origin: 50% 50%;
+    background: url(steel.png);
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    overflow: hidden;
+}
+main img, main canvas {
+    width: 64px;
+    height: 64px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+main canvas, #soundoff { pointer-events: none; }
+main img.title {
+    transform: translateY(100%);
+    transition: transform 250ms ease-out;
+}
+main.title img.title {
+    transform: translateY(0);
+    transition: transform 250ms ease-in;
+}
+main img.loading { display: none; }
+main.loading img.loading { display: block; }
+
+#soundoff, #soundtoggle { display: none; }
+body.soundoff #soundoff { display: block; }
+main.title #soundtoggle { display: block; }
+#soundtoggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    outline: 0;
+}
+
+main img.title { z-index: 1; }
+div.gameover span { z-index: 2; }
+#soundtoggle { z-index: 3; }
+div.gameover span.top, div.gameover span.bottom {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 64px;
+    height: 32px;
+    background: url(doors.png);
+    transition: transform 100ms ease-in;
+    transform: translateY(-100%);
+}
+div.gameover span.bottom {
+    top: 32px;
+    background-position: 0 -32px;
+    transform: translateY(100%);
+}
+main.gameover_top div.gameover span.top,
+main.gameover_top div.gameover span.bottom,
+main.gameover_bottom div.gameover span.top,
+main.gameover_bottom div.gameover span.bottom { transform: translateY(0); }
+main.gameover_top span.top, main.gameover_bottom span.bottom { transition-delay: 300ms; }
+
+div.curtains span.left, div.curtains span.right {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 64px;
+    background: url(curtains.png);
+    transition: transform 100ms ease-in;
+    transform: translateX(-100%);
+}
+div.curtains span.right {
+    left: 32px;
+    background-position: -32px 0;
+    transform: translateX(100%);
+}
+div.curtains {
+    height: 64px;
+    width: 64px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+div.curtains #level { 
+    position: absolute;
+    top: 32px;
+    width: 100%;
+    height: 32px;
+    font-family: unscii, monospace;
+    text-decoration: none;
+    color: white;
+    text-align: center;
+    font-size: 40px;
+    display: block;
+    opacity: 0;
+    transition: opacity 300ms ease-in;
+    outline: 0;
+}
+main.win div.curtains span.left, main.win div.curtains span.right { transform: translateX(0); }
+main.win div.curtains #level { opacity: 1; }
+
+#press {
+    width: 8px;
+    height: 8px;
+    position: absolute;
+    top: 32px;
+    left: 48px;
+    background: url(press.png) top left no-repeat;
+    z-index: 5;
+    animation: press 1s steps(8, end) infinite;
+    display: none;
+    pointer-events: none;
+}
+body[data-wait-for-press] #press { display: block; }
+@keyframes press {
+    from { background-position: 0 0; }
+    to { background-position: -64px 0; }
+}
+
+table {
+    table-layout: fixed;
+    padding: 0;
+    margin: 0;
+    border-collapse: collapse;
+}
+td {
+    box-sizing: border-box;
+    width: 8px;
+    height: 8px;
+    text-indent: -1000em;
+    background: url(pipes.png) no-repeat;
+    display: block;
+    float: left;
+    background-position: 0 0;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    transition: transform 250ms ease-out;
+    position: relative;
+    /* box-shadow: inset 1px 1px 1px 0px rgba(255,255,255,1); */
+}
+tr {
+    display: block;
+    clear: left;
+}
+td.N     { background-position: 0 0; }
+td.E     { background-position: -8px 0; }
+td.W     { background-position: -16px 0; }
+td.S     { background-position: -24px 0; }
+td.EN    { background-position: 0 -8px; }
+td.ES    { background-position: -8px -8px; }
+td.EW    { background-position: -16px -8px; }
+td.NS    { background-position: -24px -8px; }
+td.NW    { background-position: 0 -16px; }
+td.SW    { background-position: -8px -16px; }
+td.ENS   { background-position: -16px -16px; }
+td.ENW   { background-position: -24px -16px; }
+td.ESW   { background-position: 0 -24px; }
+td.NSW   { background-position: -8px -24px; }
+td.ENSW  { background-position: -16px -24px; }
+td.empty { background-position: -24px -24px; }
+
+td[data-start="start"], td[data-end="end"] {
+    background-position: -24px -24px;
+    background-color: transparent;
+}
+
+td.NS[data-start="start"]::after, td.ENS[data-start="start"]::after { /* S */
+    content: ""; position: absolute; width: 2px; height: 1px;
+    background: black; top: 7px; left: 3px;
+}
+td.EN[data-start="start"]::before, td.ENS[data-start="start"]::before { /* E */
+    content: ""; position: absolute; width: 1px; height: 2px;
+    background: black; top: 3px; left: 7px;
+}
+td.EN[data-end="end"]::after, td.ENW[data-end="end"]::after { /* N */
+    content: ""; position: absolute; width: 2px; height: 1px;
+    background: black; top: 0px; left: 3px;
+}
+td.EW[data-end="end"]::before, td.ENW[data-end="end"]::before { /* W */
+    content: ""; position: absolute; width: 1px; height: 2px;
+    background: black; top: 3px; left: 0px;
+}
+table[data-flowing] td[data-start="start"]::after, table[data-flowing] td[data-start="start"]::before,
+tr[data-won] td[data-end="end"]::before, tr[data-won] td[data-end="end"]::after {
+    background: yellow;
+}
+table tr:nth-child(1) { --size: 1px; } /* the pulsing source */
+table tr:nth-child(1)::after {
+    position: absolute;
+    content: "";
+    width: var(--size);
+    height: var(--size);
+    top: calc(4px - (var(--size) / 2));
+    left: calc(4px - (var(--size) / 2));
+    background: #ffff00;
+    z-index: -2;
+}
+table tr:nth-child(1)::before {
+    position: absolute;
+    content: "S";
+    font-size: 10px;
+    text-align: center;
+    width: 6px;
+    height: 6px;
+    top: 1px;
+    left: 1px;
+    z-index: -1;
+    color: #00ff00;
+    line-height: 9px;
+    font-family: "unscii";
+}
+table tr:nth-child(8)::after {
+    position: absolute;
+    content: "E";
+    font-size: 10px;
+    text-align: center;
+    width: 6px;
+    height: 6px;
+    right: 1px;
+    bottom: 1px;
+    z-index: -1;
+    color: #00ff00;
+    line-height: 9px;
+    font-family: "unscii";
+    background: black;
+}
+table tr:nth-child(8)[data-won]::after { background: yellow; }
+</style>
+<script>
+/* layout */
+var stimeout;
+function actuallyscale() {
+    var smallest = Math.min(document.documentElement.clientWidth, document.documentElement.clientHeight);
+    var scale = Math.floor(smallest / 64);
+    if (scale < 1) scale = 1;
+    if (scale > 10) scale = 10;
+    document.querySelector("main").style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+function scaleit() {
+    clearTimeout(stimeout);
+    stimeout = setTimeout(actuallyscale, 50); //  debounce
+}
+
+
+/* Generation */
+function maze(x,y) {
+    let n=x*y-1;
+    if (n<0) {
+        reject(new Error(`illegal maze dimensions (${x} x ${y} < 1)`));
+    } else {
+        let horiz =[]; for (let j= 0; j<x+1; j++) horiz[j]= [];
+        let verti =[]; for (let j= 0; j<x+1; j++) verti[j]= [];
+        let here = [Math.floor(Math.random()*x), Math.floor(Math.random()*y)];
+        let path = [here];
+        let unvisited = [];
+        for (let j = 0; j<x+2; j++) {
+            unvisited[j] = [];
+            for (let k= 0; k<y+1; k++)
+                unvisited[j].push(j>0 && j<x+1 && k>0 && (j != here[0]+1 || k != here[1]+1));
+        }
+        while (0<n) {
+            let potential = [[here[0]+1, here[1]], [here[0],here[1]+1],
+                    [here[0]-1, here[1]], [here[0],here[1]-1]];
+            let neighbors = [];
+            for (let j = 0; j < 4; j++)
+                if (unvisited[potential[j][0]+1][potential[j][1]+1])
+                    neighbors.push(potential[j]);
+            if (neighbors.length) {
+                n = n-1;
+                let next= neighbors[Math.floor(Math.random()*neighbors.length)];
+                unvisited[next[0]+1][next[1]+1]= false;
+                if (next[0] == here[0])
+                    horiz[next[0]][(next[1]+here[1]-1)/2]= true;
+                else 
+                    verti[(next[0]+here[0]-1)/2][next[1]]= true;
+                path.push(here = next);
+            } else 
+                here = path.pop();
+        }
+        return ({x: x, y: y, horiz: horiz, verti: verti});
+    }
+}
+
+function display(m) {
+    let text = [];
+    for (let j= 0; j<m.x*2+1; j++) {
+        let line = [];
+        if (0 == j%2)
+            for (let k=0; k<m.y*4+1; k++)
+                if (0 == k%4) 
+                    line[k] = '+';
+                else
+                    if (j>0 && m.verti[j/2-1][Math.floor(k/4)])
+                        line[k] = ' ';
+                    else
+                        line[k] = '-';
+        else
+            for (let k=0; k<m.y*4+1; k++)
+                if (0 == k%4)
+                    if (k>0 && m.horiz[(j-1)/2][k/4-1])
+                        line[k] = ' ';
+                    else
+                        line[k] = '|';
+                else
+                    line[k] = ' ';
+        if (0 == j) line[1] = line[2] = line[3] = ' ';
+        if (m.x*2-1 == j) line[4*m.y]= ' ';
+        text.push(line.join('')+'\r\n');
+    }
+    const OUTPUT = text.join('');
+    return (OUTPUT);
+}
+
+function render(m, parent) {
+    var table = document.createElement("table");
+    for (var y=0; y<m.y; y++) {
+        var tr = document.createElement("tr");
+        for (var x=0; x<m.x; x++) {
+            var dirs = [];
+            if (x==0) {
+                dirs.push("W"); // left hand wall always present
+            } else if (!m.horiz[y][x-1]) {
+                dirs.push("W");
+            }
+            if (!m.horiz[y][x]) { 
+                if (x == m.x-1 && y == m.y-1) {
+                    // do nothing; bottom right square has exit door E
+                } else {
+                    dirs.push("E");
+                }
+            }
+            if (y==0) {
+                if (x>0) dirs.push("N"); // top left 0,0 square has exit door N
+            } else if (!m.verti[y-1][x]) {
+                dirs.push("N"); 
+            }
+            if (!m.verti[y][x]) { dirs.push("S"); }
+            dirs.sort();
+
+            // dirs define where walls are
+            // pipes go where walls aren't
+            // so we need to "reverse" it, so N -> ESW, and NE -> SW
+            var pipes = ["N", "W", "E", "S"].filter(d => !dirs.includes(d));
+            pipes.sort();
+
+            if (pipes.length == 0) { dirs = ["empty"]; }
+            pipes = pipes.join("");
+            var td = document.createElement("td");
+            td.className = pipes;
+            if (x==0&&y==0 || x==m.x-1&&y==m.y-1) {
+                td.dataset.fill = "fill"; // don't rotate entrance or exit
+                if (x==0&&y==0) td.dataset.start = "start";
+                if (x==m.x-1&&y==m.y-1) td.dataset.end = "end";
+            }
+            td.appendChild(document.createTextNode(pipes));
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+    parent.appendChild(table);
+    return table;
+}
+
+/* Game running */
+function createDirections() {
+    var trs = Array.prototype.slice.call(document.querySelectorAll("tr"));
+    for (var y=0; y<8; y++) {
+        var tds = Array.prototype.slice.call(trs[y].querySelectorAll("td"));
+        for (var x=0; x<8; x++) {
+            if (x>0) tds[x].w = tds[x-1];
+            if (x<7) tds[x].e = tds[x+1];
+            if (y>0) tds[x].n = Array.prototype.slice.call(trs[y-1].querySelectorAll("td"))[x];
+            if (y<7) tds[x].s = Array.prototype.slice.call(trs[y+1].querySelectorAll("td"))[x];
+        }
+    }
+}
+function spin(el, inc, transform) {
+    if (el.dataset.fill == "fill") return; // can't spin a square with water in
+    var cur = el.dataset.rot;
+    if (!cur) {
+        cur = 0;
+    } else {
+        cur = parseInt(cur);
+    }
+    cur += inc;
+    el.dataset.rot = cur.toString();
+    if (transform) el.style.transform = "rotateZ(" + cur + "deg)";
+}
+
+function click(el, inc, transform) {
+    spin(el, inc, transform);
+    if (el.n) spin(el.n, inc, transform);
+    if (el.e) spin(el.e, inc, transform);
+    if (el.s) spin(el.s, inc, transform);
+    if (el.w) spin(el.w, inc, transform);
+    var rotated = Array.prototype.slice.call(document.querySelectorAll("table td")).filter(function(td) {
+        var rot = td.dataset.rot;
+        if (!rot) return false;
+        rot = parseInt(rot);
+        if (rot % 360 == 0) return false;
+        return true;
+    })
+    if (rotated.length == 0) {
+        console.log("early finish!");
+        early_finish = true;
+    }
+}
+
+function shuffle() {
+    var tds = Array.prototype.slice.call(document.querySelectorAll("td"));
+    console.log("shuffling for level", LEVEL - 1);
+    for (var i=0; i<LEVEL - 1; i++) {
+        var idx = Math.floor(tds.length * Math.random());
+        if (LEVEL == 2) idx = 38;
+        if (idx == 0 || idx == tds.length - 1) continue; // don't flip start or end
+        var td = tds[idx];
+        //console.log("spun", td);
+        click(td, -90, false);
+    }
+    tds.forEach(function(td) {
+        var cur = td.dataset.rot;
+        if (cur) td.style.transform = "rotateZ(" + cur + "deg)";
+    })
+}
+
+function makeCanvas() {
+    var c = document.createElement("canvas");
+    c.width = 64;
+    c.height = 64;
+    var ctx = c.getContext("2d");
+    document.querySelector("main").appendChild(c);
+    return ctx;
+}
+
+function rotate(layout) {
+    var l = layout
+        .replace("E", "s")
+        .replace("S", "w")
+        .replace("W", "n")
+        .replace("N", "e")
+        .split("");
+    l.sort();
+    return l.join("").toUpperCase();
+}
+
+function draw_entry(sx, sy, step, entry, ctx) {
+    var stop = sy * 8, sleft = sx * 8;
+    var top, left, w, h;
+    switch(entry) {
+        case "N": top = stop + step; left = sleft + 3; w = 2; h = 1; break;
+        case "E": top = stop + 3; left = sleft + 7 - step; w = 1; h = 2; break;
+        case "S": top = stop + 7 - step; left = sleft + 3; w = 2; h = 1; break;
+        case "W": top = stop + 3; left = sleft + step; w = 1; h = 2; break;
+        default: console.log("ERROR: unexpected entry", entry);
+    }
+    ctx.fillStyle = "#ffff00";
+    ctx.fillRect(left, top, w, h);
+    //console.log("draw_entry", entry, "sx", sx, "sy", sy, "step", step, "top", top, "left", left, "w", w, "h", h);
+}
+
+function draw_remaining(sx, sy, step, direction, ctx) {
+    var stop = sy * 8, sleft = sx * 8;
+    var top, left, w, h;
+    var step_remaining = step - 4;
+    switch(direction) {
+        case "N": top = stop + 3 - step_remaining; left = sleft + 3; w = 2; h = 1; break;
+        case "E": top = stop + 3; left = sleft + 4 + step_remaining; w = 1; h = 2; break;
+        case "S": top = stop + 4 + step_remaining; left = sleft + 3; w = 2; h = 1; break;
+        case "W": top = stop + 3; left = sleft + 3 - step_remaining; w = 1; h = 2; break;
+        default: console.log("ERROR: unexpected direction", direction);
+    }
+    ctx.fillStyle = "#ffff00";
+    ctx.fillRect(left, top, w, h);
+    //console.log("draw_remaining", direction, "sx", sx, "sy", sy, "step", step, "top", top, "left", left, "w", w, "h", h);
+}
+
+function fillCanvas(ctx, table, delay) {
+
+    function endTheGame(x, y, square) {
+        console.log("end the game here!");
+        document.body.removeAttribute("data-wait-for-press");
+        square.style.backgroundColor = "red";
+        endgame = true;
+        clearInterval(iv);
+        if (y < 4) {
+            document.querySelector("main").className = "gameover_top";
+        } else {
+            document.querySelector("main").className = "gameover_bottom";
+        }
+        setTimeout(function() { document.getElementById("thump1").play(); }, 100);
+        setTimeout(function() {
+            document.getElementById("thump2").play();
+            table.parentNode.removeChild(table);
+            var c = document.querySelector("canvas");
+            c.parentNode.removeChild(c);
+            setTimeout(function() {
+                document.querySelector("main").className = "title";
+            }, 700);
+        }, 300);
+    }
+
+    function winTheGame(x, y, square) {
+        console.log("we win!");
+        document.getElementById("victory").play();
+        endgame = true;
+        clearInterval(iv);
+        table.querySelectorAll("tr")[7].dataset.won = "won";
+        setTimeout(function() {
+            document.querySelector("main").className = "win";
+            table.parentNode.removeChild(table);
+            var c = document.querySelector("canvas");
+            c.parentNode.removeChild(c);
+        }, 1000);
+    }
+
+    var endgame = false;
+    var q = [{squares: [{x:0,y:0,entry:"N"}], step: 0}];
+    var grid = [];
+    Array.prototype.slice.call(table.querySelectorAll("tr")).forEach(function(tr) {
+        grid.push(Array.prototype.slice.call(tr.querySelectorAll("td")));
+    })
+    var iv = setInterval(function() {
+        var toprocess = q.shift();
+        if (!toprocess) {
+            console.log("no more queue");
+            clearInterval(iv);
+            return;
+        }
+        var adds = [];
+        toprocess.squares.forEach(function(s) {
+            if (endgame) return;
+            var square = grid[s.y][s.x];
+            square.dataset.fill = "fill";
+            var cur = square.dataset.rot;
+            if (!cur) { cur = 0; } else { cur = parseInt(cur); }
+            cur = (cur / 90);
+            cur = ((cur % 4) + 4) % 4;
+            var layout = square.className;
+            for (var i=0; i<cur; i++) { layout = rotate(layout); }
+            if (layout.indexOf(s.entry) == -1) {
+                // trying to enter a square which doesn't have a pipe there! end game!
+                console.log("end game!", layout, s.entry);
+                endTheGame(s.x, s.y, square);
+                return;
+            }
+            //console.log("square", square, "step", toprocess.step, "cur", cur, "layout", layout);
+            // first four steps are just the entry
+            if (toprocess.step < 4) {
+                if (!square.dataset.start) draw_entry(s.x, s.y, toprocess.step, s.entry, ctx);
+            } else {
+                var remaining = layout.replace(s.entry, "");
+                remaining.split("").forEach(function(direction) {
+                    if (!square.dataset.start) draw_remaining(s.x, s.y, toprocess.step, direction, ctx)
+                })
+                if (toprocess.step == 7) {
+                    remaining.split("").forEach(function(direction) {
+                        //console.log("adding", square[direction.toLowerCase()], "from", square);
+                        var nx = s.x, ny = s.y, entry;
+                        switch(direction) {
+                            case "N": ny -= 1; entry = "S"; break;
+                            case "E": nx += 1; entry = "W"; break;
+                            case "S": ny += 1; entry = "N"; break;
+                            case "W": nx -= 1; entry = "E"; break;
+                            default: console.log("Unexpected square in new direction", direction);
+                        }
+                        if (ny == grid.length - 1 && nx == grid[grid.length - 1].length - 1) {
+                            winTheGame(s.x, s.y, square);
+                            return;
+                        } else if (nx < 0 || nx > 7 || ny < 0 || ny > 7 || grid[ny][nx].dataset.fill == "fill") {
+                            console.log("Going into a square which is filled or outside!", square[direction.toLowerCase()]);
+                            endTheGame(s.x, s.y, square);
+                            return;
+                        }
+                        adds.push({x: nx, y: ny, entry: entry })
+                    })
+                }
+            }
+        })
+        if (endgame) return;
+
+        if (adds.length > 0) q.push({squares: adds, step: 0});
+        toprocess.step += 1;
+        if (toprocess.step < 8) q.unshift(toprocess);
+        //console.log("Queue", q.map(ss => { return ss.squares.map(s => grid[s.y][s.x]) }))
+    }, delay);
+}
+
+function pulse(current, total) {
+    var fraction = Math.ceil(6 * current / total);
+    document.querySelectorAll("table tr")[0].style.setProperty("--size", (fraction + 1) + "px");
+    setTimeout(function() {
+        document.querySelectorAll("table tr")[0].style.setProperty("--size", (fraction) + "px");
+    }, 100);
+}
+
+var start_iv, early_finish;
+function newgame() {
+    early_finish = false;
+    document.querySelector("main").className = "loading";
+    var m = maze(8,8);
+    //console.log(display(m)); // show maze
+    var table = render(m, document.querySelector("main"));
+    createDirections();
+    shuffle();
+    table.addEventListener("click", function(e) {
+        document.body.removeAttribute("data-wait-for-press");
+        click(e.target, 90, true);
+    }, false);
+    var ctx = makeCanvas();
+    document.querySelector("main").className = "game";
+    if (LEVEL == 2) { document.body.dataset.waitForPress = "wait"; }
+
+    var wait_time = 20 - (Math.min(LEVEL, 10));
+    waited_time = 0;
+    start_iv = setInterval(function() {
+        waited_time += 1;
+        if (waited_time >= wait_time || early_finish) {
+            clearInterval(start_iv);
+            console.log("begin flow!");
+            table.dataset.flowing = "flowing";
+            fillCanvas(ctx, table, early_finish ? 5 : 250);
+        } else {
+            pulse(waited_time, wait_time);
+        }
+    }, 1000);
+}
+var LEVEL = 2;
+function nextlevel() {
+    LEVEL += 1;
+    console.log("nextlevel, level is", LEVEL);
+    document.getElementById("level").innerHTML = LEVEL.toString();
+    newgame();
+}
+
+function soundoff() {
+    Array.prototype.slice.call(document.querySelectorAll("audio")).forEach(function(a) {
+        a.volume = 0;
+        a.pause();
+    })
+}
+function soundon() {
+    Array.prototype.slice.call(document.querySelectorAll("audio")).forEach(function(a) {
+        a.volume = 1;
+        if (a.id == "music") a.play();
+    })
+}
+
+document.querySelector("main img.title").addEventListener("click", function(e) {
+    e.stopPropagation();
+    LEVEL = 2;
+    document.getElementById("level").innerHTML = LEVEL.toString();
+    newgame();
+}, false);
+document.querySelector("main div.curtains").addEventListener("click", function(e) {
+    e.stopPropagation();
+    nextlevel();
+}, false);
+
+window.onresize = scaleit;
+scaleit();
+if (window.localStorage.getItem("pf-sound") == "off") {
+    soundoff();
+    document.body.classList.add("soundoff");
+} else {
+    soundon();
+    document.body.classList.remove("soundoff");
+}
+document.getElementById("soundtoggle").addEventListener("click", function(e) {
+    console.log("soundtoggle");
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.toggle("soundoff");
+    if (document.body.classList.contains("soundoff")) {
+        window.localStorage.setItem("pf-sound", "off");
+        soundoff();
+    } else {
+        soundon();
+        window.localStorage.setItem("pf-sound", "on");
+    }
+}, false);
+</script>
+
+</body>
+</html>
