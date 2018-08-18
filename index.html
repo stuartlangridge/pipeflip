@@ -207,6 +207,18 @@ td.NSW   { background-position: -8px -24px; }
 td.ENSW  { background-position: -16px -24px; }
 td.empty { background-position: -24px -24px; }
 
+td[data-hi]::after {
+    content: ""; position: absolute; width: 100%; height: 100%;
+    background: rgba(255, 255, 0, 0.1); top: 0; left: 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: fadeinout 1s ease-in-out infinite alternate;
+}
+@keyframes fadeinout {
+    0% { background: rgba(80, 255, 0, 0.1); }
+    100% { background: rgba(80, 255, 0, 0); }
+}
+
 td[data-start="start"], td[data-end="end"] {
     background-position: -24px -24px;
     background-color: transparent;
@@ -646,6 +658,13 @@ function pulse(current, total) {
     }, 100);
 }
 
+function hiunhi(table, list) {
+    var requested = list.filter(function(s) { return !!s; })
+    var current = Array.prototype.slice.call(table.querySelectorAll("[data-hi]"));
+    current.forEach(function(td) { td.removeAttribute("data-hi"); })
+    requested.forEach(function(td) { td.setAttribute("data-hi", "hi"); })
+}
+
 var start_iv, early_finish;
 function newgame() {
     early_finish = false;
@@ -658,6 +677,14 @@ function newgame() {
     table.addEventListener("click", function(e) {
         document.body.removeAttribute("data-wait-for-press");
         click(e.target, 90, true);
+    }, false);
+    table.addEventListener("mouseover", function(e) {
+        if (e.target.nodeName.toLowerCase() != "td") return;
+        hiunhi(table, [e.target, e.target.n, e.target.e, e.target.s, e.target.w]);
+    }, false);
+    table.addEventListener("mouseout", function(e) {
+        if (e.target.nodeName.toLowerCase() != "td") return;
+        hiunhi(table, []);
     }, false);
     var ctx = makeCanvas();
     document.querySelector("main").className = "game";
